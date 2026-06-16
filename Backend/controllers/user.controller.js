@@ -2,6 +2,8 @@ import User from "../models/user.model.js";
 import Profile from "../models/profile.model.js";
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import fs from 'fs/promises';
+import path from 'path';
 
 
 export const register = async (req, res) => {
@@ -83,3 +85,133 @@ export const login = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 }
+
+export const getUserProfile = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId) {
+            return res.status(400).json({ message: "userId parameter is required" });
+        }
+
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Find profile (or create one if it doesn't exist yet)
+        let profile = await Profile.findOne({ userId });
+        if (!profile) {
+            profile = new Profile({ userId: user._id });
+            await profile.save();
+        }
+
+        return res.status(200).json({
+            message: "User profile fetched successfully",
+            user: {
+                id: user._id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+                ProfilePicture: user.ProfilePicture,
+                fileType: user.fileType
+            },
+            profile: {
+                bio: profile.bio,
+                currentPost: profile.currentPost,
+                pastWork: profile.pastWork,
+                education: profile.education
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const updateUserProfile = async (req, res) => {
+    try {
+        const { userId, bio, currentPost, pastWork, education } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ message: "userId is required in the request body" });
+        }
+
+        // Find profile
+        let profile = await Profile.findOne({ userId });
+        if (!profile) {
+            // Check if user exists before creating profile
+            const userExists = await User.exists({ _id: userId });
+            if (!userExists) {
+                return res.status(404).json({ message: "User not found" });
+            }
+            profile = new Profile({ userId });
+        }
+
+        // Update fields if provided
+        if (bio !== undefined) profile.bio = bio;
+        if (currentPost !== undefined) profile.currentPost = currentPost;
+        if (pastWork !== undefined) profile.pastWork = pastWork;
+        if (education !== undefined) profile.education = education;
+
+        await profile.save();
+
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            profile
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const updateProfilePicture = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        
+        if (!userId) {
+            return res.status(400).json({ message: "userId is required in the request body" });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({ message: "No file was uploaded. Please send an image file under the 'profile_pic' key" });
+        }
+
+        // Find the user by ID
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Delete previous profile picture if it exists and is not the default
+        if (user.ProfilePicture && user.ProfilePicture !== 'default.jpg') {
+            try {
+                const oldPath = path.join('uploads', user.ProfilePicture);
+                await fs.unlink(oldPath);
+            } catch (unlinkError) {
+                console.error("Failed to delete old profile picture:", unlinkError);
+                // Continue execution so we don't block uploading the new image
+            }
+        }
+
+        // Update profile picture properties
+        user.ProfilePicture = req.file.filename;
+        user.fileType = req.file.mimetype;
+
+        await user.save();
+
+        return res.status(200).json({
+            message: "Profile picture updated successfully",
+            user: {
+                id: user._id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+                ProfilePicture: user.ProfilePicture,
+                fileType: user.fileType
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
