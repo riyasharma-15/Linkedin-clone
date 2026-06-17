@@ -1,3 +1,17 @@
+### ==========================================================
+### WORKFLOW:
+### 1. Send the Register request (if not already registered)
+### 2. Send the Login request
+### 3. Copy the "id" from the login response JSON
+### 4. Paste it into @userId below (replacing the placeholder)
+### 5. Now you can run the remaining requests
+### ==========================================================
+
+### ⚠️ PASTE YOUR ACTUAL USER ID FROM LOGIN RESPONSE HERE ⚠️
+@userId = PASTE_YOUR_USER_ID_HERE
+
+### --- 1. Register ---
+
 POST http://localhost:9080/register HTTP/1.1
 Content-Type: application/json
 
@@ -10,6 +24,8 @@ Content-Type: application/json
 
 ###
 
+### --- 2. Login (copy "id" from response → paste into @userId above) ---
+
 POST http://localhost:9080/login HTTP/1.1
 Content-Type: application/json
 
@@ -20,13 +36,15 @@ Content-Type: application/json
 
 ###
 
+### --- 3. Update Profile Picture ---
+
 POST http://localhost:9080/update-profile-picture HTTP/1.1
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
 --WebAppBoundary
 Content-Disposition: form-data; name="userId"
 
-60c72b2f9b1d8b2a3c8b4567
+{{userId}}
 --WebAppBoundary
 Content-Disposition: form-data; name="profile_pic"; filename="avatar.png"
 Content-Type: image/png
@@ -36,11 +54,13 @@ Content-Type: image/png
 
 ###
 
+### --- 4. Update Profile ---
+
 POST http://localhost:9080/update-profile HTTP/1.1
 Content-Type: application/json
 
 {
-    "userId": "60c72b2f9b1d8b2a3c8b4567",
+    "userId": "{{userId}}",
     "bio": "Software engineer passionate about scalable systems",
     "currentPost": "Backend Engineer",
     "pastWork": [
@@ -61,4 +81,18 @@ Content-Type: application/json
 
 ###
 
-GET http://localhost:9080/profile/60c72b2f9b1d8b2a3c8b4567 HTTP/1.1
+### --- 6. Upload Resume ---
+
+POST http://localhost:9080/resume HTTP/1.1
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="userId"
+
+{{userId}}
+--WebAppBoundary
+Content-Disposition: form-data; name="resume"; filename="resume.pdf"
+Content-Type: application/pdf
+
+< ./resume.pdf
+--WebAppBoundary--

@@ -32,6 +32,10 @@ const UserSchema = new mongoose.Schema({
     type:String,
         default:''
     },
+    resume:{
+        type:String,
+        default:''
+    },
     token:{
         type:String,
         default:''

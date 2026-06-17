@@ -215,3 +215,54 @@ export const updateProfilePicture = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 };
+
+// Resume handlers
+export const uploadResume = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            return res.status(400).json({ message: "userId is required in the request body" });
+        }
+        if (!req.file) {
+            return res.status(400).json({ message: "No resume file uploaded. Send a PDF under the 'resume' key" });
+        }
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        // Delete previous resume if exists
+        if (user.resume && user.resume !== '') {
+            try {
+                const oldPath = path.join('uploads', user.resume);
+                await fs.unlink(oldPath);
+            } catch (e) {
+                console.error('Failed to delete old resume:', e);
+            }
+        }
+        user.resume = req.file.filename;
+        await user.save();
+        return res.status(200).json({ message: "Resume uploaded successfully", resume: req.file.filename });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const downloadResume = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) {
+            return res.status(400).json({ message: "userId parameter is required" });
+        }
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        if (!user.resume) {
+            return res.status(404).json({ message: "Resume not found for this user" });
+        }
+        const filePath = path.join(__dirname, '..', 'uploads', user.resume);
+        return res.sendFile(filePath);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};

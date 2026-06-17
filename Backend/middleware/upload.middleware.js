@@ -20,9 +20,9 @@ const storage = multer.diskStorage({
     }
 });
 
-// File filter (restrict to images only)
+// File filter (accept images and PDF resumes)
 const fileFilter = (req, file, cb) => {
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp', 'application/pdf'];
     if (allowedMimeTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
