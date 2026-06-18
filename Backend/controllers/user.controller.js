@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
+import PDFDocument from 'pdfkit';
 
 
 export const register = async (req, res) => {
@@ -168,7 +169,7 @@ export const updateUserProfile = async (req, res) => {
 export const updateProfilePicture = async (req, res) => {
     try {
         const { userId } = req.body;
-        
+
         if (!userId) {
             return res.status(400).json({ message: "userId is required in the request body" });
         }
@@ -260,8 +261,82 @@ export const downloadResume = async (req, res) => {
         if (!user.resume) {
             return res.status(404).json({ message: "Resume not found for this user" });
         }
-        const filePath = path.join(__dirname, '..', 'uploads', user.resume);
-        return res.sendFile(filePath);
+        const filePath = path.resolve('uploads', user.resume);
+        return res.download(filePath);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+// Generate user profile PDF
+export const generateUserPdf = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) {
+            return res.status(400).json({ message: "userId parameter is required" });
+        }
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        const profile = await Profile.findOne({ userId });
+
+        const doc = new PDFDocument();
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="resume_${user.username || userId}.pdf"`);
+        doc.pipe(res);
+
+        // Header
+        doc.fontSize(22).text(user.name || 'Resume', { align: 'center' });
+        doc.moveDown(0.3);
+        doc.fontSize(11).fillColor('#555').text(`${user.email}  |  @${user.username}`, { align: 'center' });
+        doc.moveDown();
+        doc.moveTo(50, doc.y).lineTo(560, doc.y).strokeColor('#ccc').stroke();
+        doc.moveDown();
+
+        if (profile) {
+            // Bio / Summary
+            if (profile.bio) {
+                doc.fontSize(14).fillColor('#000').text('Summary');
+                doc.moveDown(0.3);
+                doc.fontSize(11).fillColor('#333').text(profile.bio);
+                doc.moveDown();
+            }
+
+            // Current Position
+            if (profile.currentPost) {
+                doc.fontSize(14).fillColor('#000').text('Current Position');
+                doc.moveDown(0.3);
+                doc.fontSize(11).fillColor('#333').text(profile.currentPost);
+                doc.moveDown();
+            }
+
+            // Work Experience
+            if (Array.isArray(profile.pastWork) && profile.pastWork.length) {
+                doc.fontSize(14).fillColor('#000').text('Work Experience');
+                doc.moveDown(0.3);
+                profile.pastWork.forEach((w) => {
+                    doc.fontSize(11).fillColor('#333').text(
+                        `${w.company || 'N/A'}  —  ${w.position || 'N/A'}  (${w.years || 'N/A'})`
+                    );
+                });
+                doc.moveDown();
+            }
+
+            // Education
+            if (Array.isArray(profile.education) && profile.education.length) {
+                doc.fontSize(14).fillColor('#000').text('Education');
+                doc.moveDown(0.3);
+                profile.education.forEach((e) => {
+                    doc.fontSize(11).fillColor('#333').text(
+                        `${e.school || 'N/A'}  —  ${e.degree || ''} ${e.fieldOfStudy ? 'in ' + e.fieldOfStudy : ''}`
+                    );
+                });
+                doc.moveDown();
+            }
+        }
+
+        doc.end();
     } catch (error) {
         return res.status(500).json({ message: error.message });
     }

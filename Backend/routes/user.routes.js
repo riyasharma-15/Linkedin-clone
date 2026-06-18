@@ -1,6 +1,6 @@
-import {Router} from  "express";
-import {register, login, updateProfilePicture, getUserProfile, updateUserProfile, uploadResume, downloadResume} from "../controllers/user.controller.js";
-import {upload} from "../middleware/upload.middleware.js";
+import { Router } from "express";
+import { register, login, updateProfilePicture, getUserProfile, updateUserProfile, uploadResume, downloadResume, generateUserPdf, } from "../controllers/user.controller.js";
+import { upload } from "../middleware/upload.middleware.js";
 const router = Router();
 
 
@@ -11,9 +11,10 @@ router.route('/profile/:userId').get(getUserProfile);
 router.route('/update-profile').post(updateUserProfile);
 
 router.route('/resume')
-  .post(upload.single('resume'), uploadResume);
+    .post(upload.single('resume'), uploadResume);
 
 router.route('/resume/:userId')
-  .get(downloadResume);
+    .get(downloadResume);
+router.route('/pdf/:userId').get(generateUserPdf);
 
 export default router;

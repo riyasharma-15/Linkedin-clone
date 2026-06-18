@@ -16,14 +16,20 @@ app.use(userRoutes);
 
 
 
-const start = async () => {
 
-    const connectDB = await mongoose.connect("mongodb+srv://proconnect:clone@cluster0.puz1vx0.mongodb.net/")
+const connectDB = async () => {
+    try {
+        const conn = await mongoose.connect(process.env.MONGO_URL);
+        // MongoDB connection established
+    } catch (err) {
+        console.error("MongoDB connection failed:", err);
+        process.exit(1);
+    }
+};
 
-    app.listen(9080,() =>{
-        console.log("Server is listening on port 9080");
-    })
+// ✅ THIS IS REQUIRED
+connectDB();
 
-}
-
-start();
+app.listen(9080, () => {
+    console.log("Server is listening on port 9080");
+});
