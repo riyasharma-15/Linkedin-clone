@@ -96,3 +96,126 @@ Content-Type: application/pdf
 
 < ./resume.pdf
 --WebAppBoundary--
+
+###
+
+### --- 7. Send Connection Request ---
+# Replace @receiverId with another registered user's ID
+@receiverId = PASTE_RECEIVER_USER_ID_HERE
+
+POST http://localhost:9080/send HTTP/1.1
+Content-Type: application/json
+
+{
+    "senderId": "{{userId}}",
+    "receiverId": "{{receiverId}}"
+}
+
+###
+
+### --- 8. Get Pending Requests ---
+GET http://localhost:9080/pending/{{userId}} HTTP/1.1
+
+###
+
+### --- 9. Accept Connection Request ---
+# Replace @requestId with the connection request ID from the pending requests list
+@requestId = PASTE_REQUEST_ID_HERE
+
+POST http://localhost:9080/accept/{{requestId}} HTTP/1.1
+
+###
+
+### --- 10. Reject Connection Request ---
+POST http://localhost:9080/reject/{{requestId}} HTTP/1.1
+
+###
+
+### --- 11. Get My Connections ---
+GET http://localhost:9080/my-connections/{{userId}} HTTP/1.1
+
+###
+
+### --- 12. Create Post (Text Only) ---
+POST http://localhost:9080/posts/create HTTP/1.1
+Content-Type: application/json
+
+{
+    "userId": "{{userId}}",
+    "body": "This is a text-only post to test the new post endpoint."
+}
+
+###
+
+### --- 13. Create Post (With Media Upload) ---
+POST http://localhost:9080/posts/create HTTP/1.1
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="userId"
+
+{{userId}}
+--WebAppBoundary
+Content-Disposition: form-data; name="body"
+
+Check out my profile picture!
+--WebAppBoundary
+Content-Disposition: form-data; name="media"; filename="avatar.png"
+Content-Type: image/png
+
+< ./avatar.png
+--WebAppBoundary--
+
+###
+
+### --- 14. Get All Posts ---
+GET http://localhost:9080/posts HTTP/1.1
+
+###
+
+### --- 15. Like a Post ---
+# Replace @postId with the actual post ID from the Get All Posts response
+@postId = PASTE_POST_ID_HERE
+
+POST http://localhost:9080/posts/like/{{postId}} HTTP/1.1
+Content-Type: application/json
+
+{
+    "action": "like"
+}
+
+###
+
+### --- 16. Comment on a Post ---
+POST http://localhost:9080/posts/comment HTTP/1.1
+Content-Type: application/json
+
+{
+    "userId": "{{userId}}",
+    "postId": "{{postId}}",
+    "body": "Great post! Thanks for sharing."
+}
+
+###
+
+### --- 17. Get Comments for a Post ---
+GET http://localhost:9080/posts/comments/{{postId}} HTTP/1.1
+
+###
+
+### --- 18. Delete a Post ---
+DELETE http://localhost:9080/posts/{{postId}} HTTP/1.1
+
+###
+
+### --- 19. Delete a Comment ---
+# Replace @commentId with the actual comment ID from the Get Comments response
+@commentId = PASTE_COMMENT_ID_HERE
+
+DELETE http://localhost:9080/posts/comments/{{commentId}} HTTP/1.1
+Content-Type: application/json
+
+{
+    "userId": "{{userId}}"
+}
+

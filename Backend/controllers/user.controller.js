@@ -1,5 +1,6 @@
 import User from "../models/user.model.js";
 import Profile from "../models/profile.model.js";
+import Connection from "../models/connections.model.js";
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import fs from 'fs/promises';
@@ -339,5 +340,167 @@ export const generateUserPdf = async (req, res) => {
         doc.end();
     } catch (error) {
         return res.status(500).json({ message: error.message });
+    }
+};
+export const sendConnectionRequest = async (req, res) => {
+    try {
+        const { senderId, receiverId } = req.body;
+
+        if (!senderId || !receiverId) {
+            return res.status(400).json({
+                message: "Sender and Receiver are required"
+            });
+        }
+
+        if (senderId === receiverId) {
+            return res.status(400).json({
+                message: "You cannot connect with yourself"
+            });
+        }
+
+        const sender = await User.findById(senderId);
+        const receiver = await User.findById(receiverId);
+
+        if (!sender || !receiver) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        const existingRequest = await Connection.findOne({
+            $or: [
+                { sender: senderId, receiver: receiverId },
+                { sender: receiverId, receiver: senderId }
+            ]
+        });
+
+        if (existingRequest) {
+            return res.status(400).json({
+                message: "Connection request already exists"
+            });
+        }
+
+        const connection = new Connection({
+            sender: senderId,
+            receiver: receiverId,
+        });
+
+        await connection.save();
+
+        return res.status(201).json({
+            message: "Connection request sent successfully",
+            connection,
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message,
+        });
+    }
+};
+
+export const acceptConnectionRequest = async (req, res) => {
+    try {
+
+        const { requestId } = req.params;
+
+        const request = await Connection.findById(requestId);
+
+        if (!request) {
+            return res.status(404).json({
+                message: "Connection request not found"
+            });
+        }
+
+        request.status = "accepted";
+
+        await request.save();
+
+        return res.status(200).json({
+            message: "Connection accepted successfully",
+            request
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+export const rejectConnectionRequest = async (req, res) => {
+    try {
+
+        const { requestId } = req.params;
+
+        const request = await Connection.findById(requestId);
+
+        if (!request) {
+            return res.status(404).json({
+                message: "Connection request not found"
+            });
+        }
+
+        request.status = "rejected";
+
+        await request.save();
+
+        return res.status(200).json({
+            message: "Connection rejected",
+            request
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+export const getPendingRequests = async (req, res) => {
+
+    try {
+
+        const { userId } = req.params;
+
+        const requests = await Connection.find({
+            receiver: userId,
+            status: "pending"
+        }).populate("sender", "name username email");
+
+        return res.status(200).json({
+            requests
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+};
+
+export const getMyConnections = async (req, res) => {
+
+    try {
+
+        const { userId } = req.params;
+
+        const connections = await Connection.find({
+            status: "accepted",
+            $or: [
+                { sender: userId },
+                { receiver: userId }
+            ]
+        })
+            .populate("sender", "name username")
+            .populate("receiver", "name username");
+
+        return res.status(200).json({
+            connections
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
     }
 };

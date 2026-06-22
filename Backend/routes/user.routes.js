@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { register, login, updateProfilePicture, getUserProfile, updateUserProfile, uploadResume, downloadResume, generateUserPdf, } from "../controllers/user.controller.js";
+import { register, login, updateProfilePicture, getUserProfile, updateUserProfile, uploadResume, downloadResume, generateUserPdf, sendConnectionRequest, acceptConnectionRequest, rejectConnectionRequest, getPendingRequests, getMyConnections } from "../controllers/user.controller.js";
 import { upload } from "../middleware/upload.middleware.js";
 const router = Router();
 
@@ -16,5 +16,9 @@ router.route('/resume')
 router.route('/resume/:userId')
     .get(downloadResume);
 router.route('/pdf/:userId').get(generateUserPdf);
-
+router.route("/send").post(sendConnectionRequest);
+router.route("/accept/:requestId").post(acceptConnectionRequest);
+router.route("/reject/:requestId").post(rejectConnectionRequest);
+router.route("/pending/:userId").get(getPendingRequests);
+router.route("/my-connections/:userId").get(getMyConnections);
 export default router;
